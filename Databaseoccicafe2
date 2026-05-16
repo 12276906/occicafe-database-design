@@ -1,0 +1,127 @@
+/* ==========================================================
+   PROYECTO: DISEÑO DE BASE DE DATOS
+   EMPRESA: Occicafé
+   DESCRIPCIÓN: Base de datos para gestión de compra
+                de café verde y seco.
+   ========================================================== */
+
+-------------------------------------------------------------
+-- ELIMINAR TABLAS (SI EXISTEN) - ORDEN CORRECTO
+-------------------------------------------------------------
+
+DROP TABLE PAGO CASCADE CONSTRAINTS;
+DROP TABLE COMPRA CASCADE CONSTRAINTS;
+DROP TABLE CAFE CASCADE CONSTRAINTS;
+DROP TABLE PRODUCTOR CASCADE CONSTRAINTS;
+
+-------------------------------------------------------------
+-- CREACIÓN DE TABLAS (DDL)
+-------------------------------------------------------------
+
+-- TABLA PRODUCTOR
+CREATE TABLE PRODUCTOR (
+    id_productor      NUMBER PRIMARY KEY,
+    nombre            VARCHAR2(100) NOT NULL,
+    cedula            VARCHAR2(20) UNIQUE NOT NULL,
+    telefono          VARCHAR2(20),
+    municipio         VARCHAR2(100)
+);
+
+-- TABLA CAFE
+CREATE TABLE CAFE (
+    id_cafe           NUMBER PRIMARY KEY,
+    tipo_cafe         VARCHAR2(50) CHECK (tipo_cafe IN ('Verde','Seco')),
+    calidad           VARCHAR2(50)
+);
+
+-- TABLA COMPRA
+CREATE TABLE COMPRA (
+    id_compra         NUMBER PRIMARY KEY,
+    id_productor      NUMBER NOT NULL,
+    id_cafe           NUMBER NOT NULL,
+    fecha_compra      DATE DEFAULT SYSDATE,
+    peso_kg           NUMBER(10,2) CHECK (peso_kg > 0),
+    precio_kg         NUMBER(10,2) CHECK (precio_kg > 0),
+
+    CONSTRAINT fk_compra_productor
+        FOREIGN KEY (id_productor)
+        REFERENCES PRODUCTOR(id_productor),
+
+    CONSTRAINT fk_compra_cafe
+        FOREIGN KEY (id_cafe)
+        REFERENCES CAFE(id_cafe)
+);
+
+-- TABLA PAGO
+CREATE TABLE PAGO (
+    id_pago           NUMBER PRIMARY KEY,
+    id_compra         NUMBER NOT NULL,
+    fecha_pago        DATE DEFAULT SYSDATE,
+    total_pagado      NUMBER(12,2),
+
+    CONSTRAINT fk_pago_compra
+        FOREIGN KEY (id_compra)
+        REFERENCES COMPRA(id_compra)
+);
+
+-------------------------------------------------------------
+-- INSERCIÓN DE DATOS (DML)
+-------------------------------------------------------------
+
+-- PRODUCTORES
+INSERT INTO PRODUCTOR VALUES (1, 'Juan Pérez', '12345678', '3101111111', 'La Plata');
+INSERT INTO PRODUCTOR VALUES (2, 'Carlos Gómez', '87654321', '3102222222', 'Pitalito');
+INSERT INTO PRODUCTOR VALUES (3, 'María Torres', '45678912', '3103333333', 'Garzón');
+
+-- TIPOS DE CAFÉ
+INSERT INTO CAFE VALUES (1, 'Verde', 'Excelso');
+INSERT INTO CAFE VALUES (2, 'Seco', 'Pergamino');
+INSERT INTO CAFE VALUES (3, 'Verde', 'Supremo');
+
+-- COMPRAS
+INSERT INTO COMPRA VALUES (1, 1, 1, SYSDATE, 1500, 8500);
+INSERT INTO COMPRA VALUES (2, 2, 2, SYSDATE, 2000, 7800);
+INSERT INTO COMPRA VALUES (3, 3, 3, SYSDATE, 1800, 9000);
+
+-- PAGOS
+INSERT INTO PAGO VALUES (1, 1, SYSDATE, 1500 * 8500);
+INSERT INTO PAGO VALUES (2, 2, SYSDATE, 2000 * 7800);
+INSERT INTO PAGO VALUES (3, 3, SYSDATE, 1800 * 9000);
+
+COMMIT;
+
+-------------------------------------------------------------
+-- CONSULTAS (SELECT)
+-------------------------------------------------------------
+
+-- 1. Listar productores registrados
+SELECT * FROM PRODUCTOR;
+
+-- 2. Mostrar compras mayores a 1600 kg
+SELECT * FROM COMPRA
+WHERE peso_kg > 1600;
+
+-- 3. Total comprado por productor
+SELECT P.nombre,
+       SUM(C.peso_kg) AS total_kg
+FROM PRODUCTOR P, COMPRA C
+WHERE P.id_productor = C.id_productor
+GROUP BY P.nombre;
+
+-- 4. Detalle completo de compras
+SELECT C.id_compra,
+       P.nombre AS productor,
+       CF.tipo_cafe,
+       C.peso_kg,
+       C.precio_kg,
+       (C.peso_kg * C.precio_kg) AS total_compra
+FROM COMPRA C, PRODUCTOR P, CAFE CF
+WHERE C.id_productor = P.id_productor
+AND C.id_cafe = CF.id_cafe;
+
+-- 5. Total pagado por compra
+SELECT * FROM PAGO;
+
+-------------------------------------------------------------
+-- FIN DEL SCRIPT
+-------------------------------------------------------------
